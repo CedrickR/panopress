@@ -4,6 +4,8 @@ Plugin Name: PanoPress
 Plugin URI:  http://www.panopress.org/
 Description: Embed Flash & HTML5 360° Panoramas & Virtual Tours, 360° Video, Gigapixel Panoramas etc, created using KRPano, Pano2VR, PanoTour Pro, Flashificator, Saladoplayer, and similar panorama applications  on your WordPress site using a simple shortcode.
 Version:     1.3
+Requires at least: 3.0
+Tested up to: 6.8
 Author:      <a href="http://www.omercalev.com">Omer Calev</a> & <a href="http://www.samrohn.com">Sam Rohn</a>
 ************************************************************************
 	Copyright 2011-2014 by the authors.
@@ -212,43 +214,31 @@ function pp_get_viewr_name ( $xml_url ) {
 	return array( 'status' => $status , 'content' => $content );
 }
 /**
- * inject code into head
+ * Enqueue frontend scripts and styles.
  **/
-function pp_headers() {
-global $pp_settings;
-$oppp = $pp_settings[PP_SETTINGS_OPPP] == PP_OPPP_ALL || ( $pp_settings[PP_SETTINGS_OPPP] == PP_OPPP_MOBILE && PP_USER_AGENT_MODILE )? 'true' : 'false';
+function pp_enqueue_assets() {
+        global $pp_settings;
+        $oppp = $pp_settings[PP_SETTINGS_OPPP] == PP_OPPP_ALL || ( $pp_settings[PP_SETTINGS_OPPP] == PP_OPPP_MOBILE && PP_USER_AGENT_MODILE ) ? 'true' : 'false';
 
-// add resize default to pp settings
-$pp_settings[PP_SETTINGS_PANOBOX][PB_SETTINGS_RESIZE] = 1;
+        // add resize default to pp settings
+        $pp_settings[PP_SETTINGS_PANOBOX][PB_SETTINGS_RESIZE] = 1;
 
-echo '<!-- ' . PP_APP_NAME . ' [' . PP_APP_VERSION . '] -->
-<script type="text/javascript">
-pp_oppp=' . $oppp . ';
-pb_options=' . json_encode( $pp_settings[PP_SETTINGS_PANOBOX] ) . ';
-</script>
-<script type="text/javascript"  src="' . plugins_url( '/js/panopress.js',  __FILE__  )  . '?v='. PP_APP_VERSION .'"></script>
-<link rel="stylesheet" type="text/css" media="all" href="' . plugins_url( '/css/panopress.css?v='. PP_APP_VERSION ,  __FILE__  )  . '" />	
-';
-if( strlen(  $pp_settings[PP_SETTINGS_CSS] ) > 1 ) {
-echo '<style type="text/css">
-' .  $pp_settings[PP_SETTINGS_CSS] . '
-</style>
-';
-}
-echo '<!-- /' . PP_APP_NAME . ' -->
-';
-}
-add_action( 'wp_head', 'pp_headers' );
+        wp_enqueue_script( 'panopress-js', plugins_url( '/js/panopress.js', __FILE__ ), array(), PP_APP_VERSION, true );
+        wp_enqueue_style( 'panopress-css', plugins_url( '/css/panopress.css', __FILE__ ), array(), PP_APP_VERSION );
 
-/**
- * inject code into footer
- **/
-function pp_footer() {
-	if( PP_PANOBOX_IMAGES || $pp_settings[PP_SETTINGS_PANOBOX][PB_SETTINGS_GALLERIES] ) {
-		echo '<script type="text/javascript">panopress.imagebox();</script>';
-	}
+        $inline_js = "pp_oppp={$oppp};\n";
+        $inline_js .= 'pb_options=' . json_encode( $pp_settings[PP_SETTINGS_PANOBOX] ) . ';';
+        wp_add_inline_script( 'panopress-js', $inline_js, 'before' );
+
+        if ( strlen( $pp_settings[PP_SETTINGS_CSS] ) > 1 ) {
+                wp_add_inline_style( 'panopress-css', $pp_settings[PP_SETTINGS_CSS] );
+        }
+
+        if ( PP_PANOBOX_IMAGES || $pp_settings[PP_SETTINGS_PANOBOX][PB_SETTINGS_GALLERIES] ) {
+                wp_add_inline_script( 'panopress-js', 'panopress.imagebox();' );
+        }
 }
-add_action( 'wp_footer', 'pp_footer');
+add_action( 'wp_enqueue_scripts', 'pp_enqueue_assets' );
 
 /**
  * override gallery_shortcode and change link to 'file'

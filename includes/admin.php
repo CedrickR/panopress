@@ -11,27 +11,23 @@ function pp_admin_init() {
  * add admin_menu
  **********************************************************************/
 function pp_admin_menu() {
-	global $pp_option_page;
-	$pp_option_page = add_options_page( PP_APP_NAME . ' ' . pp__( 'Settings'), PP_APP_NAME, 'manage_options', strtolower( PP_APP_NAME ), 'pp_edit_settings' );
-	add_action( 'admin_print_scripts-' . $pp_option_page, 'pp_admin_headers' );
+        global $pp_option_page;
+        $pp_option_page = add_options_page( PP_APP_NAME . ' ' . pp__( 'Settings'), PP_APP_NAME, 'manage_options', strtolower( PP_APP_NAME ), 'pp_edit_settings' );
 }
+
 /***********************************************************************
- * print admin headers
+ * enqueue admin scripts
  **********************************************************************/
-function pp_admin_headers() {
-	 wp_enqueue_script( 'pp_admin_js' );
-}
-/***********************************************************************
- * print admin scripts
- **********************************************************************/
-function pp_admin_print_scripts(){
-	global $pp_settings;
-	echo '<script type="text/javascript">
-var PP_SETTINGS_UPLOAD_DIR = "' . site_url( '/' . $pp_settings[PP_SETTINGS_UPLOAD_DIR] . '/' ) . '";
-var PP_SETTINGS_WIDTH = \'' . $pp_settings[PP_SETTINGS_WIDTH] . '\';
-var PP_SETTINGS_HEIGHT = \'' . $pp_settings[PP_SETTINGS_HEIGHT] . '\';
-</script>
-';
+function pp_admin_enqueue_scripts( $hook ) {
+        global $pp_option_page, $pp_settings;
+        if ( $hook !== $pp_option_page ) {
+                return;
+        }
+        wp_enqueue_script( 'pp_admin_js' );
+        $inline_js  = 'var PP_SETTINGS_UPLOAD_DIR = "' . esc_js( site_url( '/' . $pp_settings[PP_SETTINGS_UPLOAD_DIR] . '/' ) ) . '";';
+        $inline_js .= "\nvar PP_SETTINGS_WIDTH = '" . esc_js( $pp_settings[PP_SETTINGS_WIDTH] ) . "';";
+        $inline_js .= "\nvar PP_SETTINGS_HEIGHT = '" . esc_js( $pp_settings[PP_SETTINGS_HEIGHT] ) . "';";
+        wp_add_inline_script( 'pp_admin_js', $inline_js );
 }
 /***********************************************************************
  * add tynymce plugin
@@ -77,11 +73,11 @@ function pp_uninstall() {
  * register actions
  **********************************************************************/
 if (is_admin()) {
-	add_action( 'admin_init', 'pp_admin_init' );
-	add_action( 'admin_menu', 'pp_admin_menu' );
-	add_action( 'admin_print_scripts', 'pp_admin_print_scripts' );
-	add_filter( 'contextual_help', 'pp_contextual_help', 10, 3 );
-	register_uninstall_hook( __FILE__, 'pp_uninstall' );
+        add_action( 'admin_init', 'pp_admin_init' );
+        add_action( 'admin_menu', 'pp_admin_menu' );
+        add_action( 'admin_enqueue_scripts', 'pp_admin_enqueue_scripts' );
+        add_filter( 'contextual_help', 'pp_contextual_help', 10, 3 );
+        register_uninstall_hook( __FILE__, 'pp_uninstall' );
 }
 /***********************************************************************
  * get wp root directory
